@@ -50,7 +50,6 @@ main :: () {
 
   closest_intersection_wire_distance : s64 = Math.S64_MAX;
   for intersections {
-    print("Intersection\n");
     if it.x == 0 && it.y == 0  continue;
 
     first_distance : s64 = Math.S64_MAX;
@@ -59,10 +58,8 @@ main :: () {
       if it.x == p.x && it.y == p.y && p.distance < first_distance {
         first_distance = p.distance;
         found_first_distance = true;
-        print("%: % -> %\n", p, it, first_distance);
       }
     }
-    print("Found first: %\n", found_first_distance);
 
     second_distance : s64 = Math.S64_MAX;
     found_second_distance := false;
@@ -72,7 +69,6 @@ main :: () {
         found_second_distance = true;
       }
     }
-    print("Found second: %\n", found_second_distance);
 
     distance := first_distance + second_distance;
     if distance < closest_intersection_wire_distance {
@@ -101,12 +97,12 @@ compute_intersections :: (first: Wire, second: Wire) -> []Point {
     if it.y > max_y  max_y = it.y;
   }
 
-  size_x := max_x - min_x;
-  size_y := max_y - min_y;
+  size_x := (max_x - min_x) + 1;
+  size_y := (max_y - min_y) + 1;
 
   area : [..]bool;
   area.allocator = __temporary_allocator;
-  array_resize(*area, (size_x + 1) * (size_y + 1));
+  array_resize(*area, size_x * size_y);
 
   for first.visited_points {
     idx_x := it.x + Math.abs(min_x);
@@ -118,7 +114,7 @@ compute_intersections :: (first: Wire, second: Wire) -> []Point {
 
   for second.visited_points {
     idx_x := it.x + Math.abs(min_x);
-    idx_y := it.y + Math.abs(min_y);    
+    idx_y := it.y + Math.abs(min_y);
     idx := idx_x + idx_y * size_x;
 
     if area[idx] {
@@ -162,8 +158,8 @@ handle_wire :: (text : string) -> Wire {
     delta_x, delta_y : int;
 
     if #complete it.direction == {
-      case Step.Direction.Up;    delta_y = -1;
-      case Step.Direction.Down;  delta_y =  1;
+      case Step.Direction.Up;    delta_y =  1;
+      case Step.Direction.Down;  delta_y = -1;
       case Step.Direction.Left;  delta_x = -1;
       case Step.Direction.Right; delta_x =  1;
     }
