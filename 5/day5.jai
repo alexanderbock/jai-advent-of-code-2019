@@ -1,20 +1,29 @@
 #import "Basic";
 File :: #import "File";
 String :: #import "String";
+CMD :: #import "Command_Line";
 
 Program : [..]int;
 pc := 0;
 
 main :: () {
-  content, success := File.read_entire_file("test1");
-  if !success {
+  Configuration :: struct {
+    file : string = "input";
+    input : int = 0;
+  }
+
+  success, conf := CMD.parse_arguments(Configuration);
+
+  file_content, file_success := File.read_entire_file(conf.file);
+  if !file_success {
     print("Error loading file\n");
   }
 
-  string_values := String.split(content, ",");
+  string_values := String.split(file_content, ",");
   Program = map(string_values, unsafe_string_to_int);
 
-  result := run_intcode_program(1);
+  result := run_intcode_program(conf.input);
+  print("\n");
   // print("Result: %\n", result);
 }
 
@@ -59,6 +68,7 @@ run_intcode_program :: (input: int) -> int, success: bool {
       case OpCode.Input;
         address := Program[pc + 1];
         Program[address] = input;
+        print("  Input: %\n", input);
         pc += 2;
 
       case OpCode.Output;
@@ -142,4 +152,4 @@ map :: (array: [] $T, func : (T) -> $R) -> [..] R {
   return result;
 }
 
-#run main();
+// #run main();
