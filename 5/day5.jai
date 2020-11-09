@@ -6,7 +6,7 @@ Program : [..]int;
 pc := 0;
 
 main :: () {
-  content, success := File.read_entire_file("input");
+  content, success := File.read_entire_file("test1");
   if !success {
     print("Error loading file\n");
   }
@@ -25,17 +25,11 @@ OpCode :: enum u32 {
   Multiplication :: 2;
   Input :: 3;
   Output :: 4;
+  JumpIfTrue :: 5;
+  JumpIfFalse :: 6;
+  LessThan :: 7;
+  Equals :: 8;
   Halt :: 99;
-}
-
-parameters_for_opcode :: (code: OpCode) -> int {
-  if #complete code == {
-    case OpCode.Addition;       return 3;
-    case OpCode.Multiplication; return 3;
-    case OpCode.Input;          return 1;
-    case OpCode.Output;         return 1;
-    case OpCode.Halt;           return 0;
-  }
 }
 
 ParameterMode :: enum u32 {
@@ -51,7 +45,7 @@ run_intcode_program :: (input: int) -> int, success: bool {
 
     if #complete op == {
       case OpCode.Addition;
-        parameters := read_parameters(2);
+        parameters := read_parameters(3);
         address := Program[pc + 3];
         Program[address] = parameters[0] + parameters[1];
         pc += 4;
@@ -71,6 +65,30 @@ run_intcode_program :: (input: int) -> int, success: bool {
         parameters := read_parameters(1);
         print("  Output: %\n", parameters[0]);
         pc += 2;
+
+      case OpCode.JumpIfTrue;
+        parameters := read_parameters(2);
+        if parameters[0] != 0  pc = parameters[1];
+        else                   pc += 3;
+
+      case OpCode.JumpIfFalse;
+        parameters := read_parameters(2);
+        if parameters[0] == 0  pc = parameters[1];
+        else                   pc += 3;      
+
+      case OpCode.LessThan;
+        parameters := read_parameters(2);
+        address := Program[pc + 3];
+        if parameters[0] < parameters[1]  Program[address] = 1;
+        else                              Program[address] = 0;
+        pc += 4;
+
+      case OpCode.Equals;
+        parameters := read_parameters(2);
+        address := Program[pc + 3];
+        if parameters[0] == parameters[1]  Program[address] = 1;
+        else                               Program[address] = 0;
+        pc += 4;
 
       case OpCode.Halt;
         break;
