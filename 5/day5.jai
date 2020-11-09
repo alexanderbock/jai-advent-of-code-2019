@@ -1,7 +1,7 @@
 #import "Basic";
+CMD :: #import "Command_Line";
 File :: #import "File";
 String :: #import "String";
-CMD :: #import "Command_Line";
 
 Program : [..]int;
 pc := 0;
@@ -13,6 +13,9 @@ main :: () {
   }
 
   success, conf := CMD.parse_arguments(Configuration);
+  if !success {
+    print("Error parsing commandline\n");
+  }
 
   file_content, file_success := File.read_entire_file(conf.file);
   if !file_success {
