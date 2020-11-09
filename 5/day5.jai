@@ -2,6 +2,9 @@
 File :: #import "File";
 String :: #import "String";
 
+Program : [..]int;
+pc := 0;
+
 main :: () {
   content, success := File.read_entire_file("input");
   if !success {
@@ -9,10 +12,13 @@ main :: () {
   }
 
   string_values := String.split(content, ",");
-  program := map(string_values, unsafe_string_to_int);
+  Program = map(string_values, unsafe_string_to_int);
 
-  result := run_intcode_program(program, -1, -1, 1);
+  result := run_intcode_program(1);
+  // print("Result: %\n", result);
 }
+
+
 
 OpCode :: enum u32 {
   Addition :: 1;
@@ -22,67 +28,48 @@ OpCode :: enum u32 {
   Halt :: 99;
 }
 
+parameters_for_opcode :: (code: OpCode) -> int {
+  if #complete code == {
+    case OpCode.Addition;       return 3;
+    case OpCode.Multiplication; return 3;
+    case OpCode.Input;          return 1;
+    case OpCode.Output;         return 1;
+    case OpCode.Halt;           return 0;
+  }
+}
+
 ParameterMode :: enum u32 {
   Position :: 0;
   Immediate :: 1;
 }
 
-run_intcode_program :: (orig_program: []int, noun: int, verb: int, input: int) -> int, success: bool {
-  program : [..]int;
-  array_copy(*program, orig_program);
-
-  if noun != -1  program[1] = noun;
-  if verb != -1  program[2] = verb;
-
-  pc := 0;
-  counter := 0;
+run_intcode_program :: (input: int) -> int, success: bool {
   while true {
-    // OpCode is in the last two digits
-    op := cast(OpCode) (program[pc] % 100);
-    parameter_mode := program[pc] / 100;
+    op := cast(OpCode) (Program[pc] % 100);
 
-
-    // if counter == 5 break;
-    // counter += 1;
-
-    // print("% % %  ", pc, op, parameter_mode);
+    print("[pc: %] %\n", pc, op);
 
     if #complete op == {
       case OpCode.Addition;
-        success := two_parameter_op(program, pc, parameter_mode, (l: int, r: int) -> int { return l + r; });
-        if !success  return 0, false;
+        parameters := read_parameters(2);
+        address := Program[pc + 3];
+        Program[address] = parameters[0] + parameters[1];
         pc += 4;
 
       case OpCode.Multiplication;
-        success := two_parameter_op(program, pc, parameter_mode, (l: int, r: int) -> int { return l * r; });
-        if !success  return 0, false;
-        pc += 4;
+        parameters := read_parameters(2);
+        address := Program[pc + 3];
+        Program[address] = parameters[0] * parameters[1];
+        pc += 4;      
 
       case OpCode.Input;
-        assert(parameter_mode == 0);
-        op1 := program[pc + 1];
-        // print("op1: %  ", op1);
-        program[op1] = input;
-        // print("program[op1]: %", program[op1]);
+        address := Program[pc + 1];
+        Program[address] = input;
         pc += 2;
 
       case OpCode.Output;
-        op1 := program[pc + 1];
-        op1_mode := cast(ParameterMode) (parameter_mode % 10);
-        parameter_mode = parameter_mode / 10;
-
-        if (op1_mode == ParameterMode.Position) && op1 >= program.count {
-          return 0, false;
-        }
-        op1_value : int;
-        if #complete op1_mode == {
-          case ParameterMode.Position;
-            op1_value = program[op1];
-          case ParameterMode.Immediate;
-            op1_value = op1;
-        }
-
-        print("Output: %\n", op1_value);
+        parameters := read_parameters(1);
+        print("  Output: %\n", parameters[0]);
         pc += 2;
 
       case OpCode.Halt;
@@ -90,63 +77,45 @@ run_intcode_program :: (orig_program: []int, noun: int, verb: int, input: int) -
       case;
         return 0, false;
     }
-
-    // print("\n");
   }
 
-  return program[0], true;
+  return Program[0], true;
 }
 
-two_parameter_op :: (program: [..]int, pc: int, parameter_mode: int, func: (int, int) -> int) -> bool {
-    op1 := program[pc + 1];
-    // print("op1: %  ", op1);
-    op1_mode := cast(ParameterMode) (parameter_mode % 10);
-    // print("op1_mode: %  ", op1_mode);
+read_parameters :: (n_parameters: int) -> []int {
+  parameters : [..]int;
+  parameters.allocator = __temporary_allocator;
+
+  parameter_mode := Program[pc] / 100;
+  for 1..n_parameters {
+    param := Program[pc + it];
+    mode := cast(ParameterMode) (parameter_mode % 10);
     parameter_mode = parameter_mode / 10;
 
-    if (op1_mode == ParameterMode.Position) && op1 >= program.count {
-      return false;
+    if (mode == ParameterMode.Position) && param >= Program.count {
+      print("Encountered address outside program range: %", param);
     }
-    op1_value : int;
-    if #complete op1_mode == {
+    value : int;
+    if #complete mode == {
       case ParameterMode.Position;
-        op1_value = program[op1];
+        value = Program[param];
       case ParameterMode.Immediate;
-        op1_value = op1;
+        value = param;
     }
 
+    array_add(*parameters, value);
+  }
 
-    op2 := program[pc + 2];
-    // print("op2: %  ", op2);
-    op2_mode :=  cast(ParameterMode) (parameter_mode % 10);
-    // print("op2_mode: %  ", op2_mode);
-    parameter_mode = parameter_mode / 10;
-
-    if (op2_mode == ParameterMode.Position) && op2 >= program.count {
-      return false;
-    }
-    op2_value : int;
-    if #complete op2_mode == {
-      case ParameterMode.Position;
-        op2_value = program[op2];
-      case ParameterMode.Immediate;
-        op2_value = op2;
-    }        
-
-    res := program[pc + 3];
-    // print("res: %  ", res);
-    assert(parameter_mode == 0);
-    if res >= program.count  return false;
-
-    program[res] = func(op1_value, op2_value);
-    return true;
+  return parameters;
 }
+
+
 
 unsafe_string_to_int :: (content: string) -> int {
   return string_to_int(content);
 }
 
-map :: (array: [] $T, func : (T) -> $R) -> [] R {
+map :: (array: [] $T, func : (T) -> $R) -> [..] R {
   result : [..]R;
   result.allocator = __temporary_allocator;
   for array {
