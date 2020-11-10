@@ -41,7 +41,19 @@ main :: () {
   print("Number of 1s in layer: %\n", number_of_1s);
   print("Number of 2s in layer: %\n", number_of_2s);
 
-  print("\nSolution: %\n\n", number_of_1s * number_of_2s);
+  print("\nSolution Part 1: %\n\n", number_of_1s * number_of_2s);
+
+  image := create_combined_image();
+  for y : 0..HEIGHT-1 {
+    for x : 0..WIDTH-1 {
+      v := image[y * WIDTH + x];
+      if v == 0  print(" ");
+      else       print("X"); 
+      // print("%", image[y * WIDTH + x]);
+    }
+    print("\n");
+  }
+
 }
 
 number_of_layers :: () -> int {
@@ -60,6 +72,25 @@ extract_layer :: (layer: int) -> []u8 {
   res : []u8;
   res.count = WIDTH*HEIGHT;
   res.data = full_data.data + (layer * WIDTH * HEIGHT);
+  return res;
+}
+
+create_combined_image :: () -> []u8 {
+  res : [..]u8;
+  res.allocator = __temporary_allocator;
+  array_resize(*res, WIDTH * HEIGHT);
+  for 0..(WIDTH*HEIGHT)-1  res[it] = 2;
+
+  for l : 0..number_of_layers()-1 {
+    layer := extract_layer(l);
+    for y : 0..HEIGHT-1 {
+      for x : 0..WIDTH-1 {
+        idx := y * WIDTH + x;
+        if res[idx] == 2  res[idx] = layer[idx];
+      }
+    }
+  }
+
   return res;
 }
 
