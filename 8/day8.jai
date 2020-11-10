@@ -49,11 +49,9 @@ main :: () {
       v := image[y * WIDTH + x];
       if v == 0  print(" ");
       else       print("X"); 
-      // print("%", image[y * WIDTH + x]);
     }
     print("\n");
   }
-
 }
 
 number_of_layers :: () -> int {
@@ -93,6 +91,5 @@ create_combined_image :: () -> []u8 {
 
   return res;
 }
-
 
 #run main();

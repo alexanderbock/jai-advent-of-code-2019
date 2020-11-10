@@ -9,8 +9,8 @@ Configuration :: struct {
 }
 conf : Configuration;
 
-read_input :: (count: int) -> int {
-  return conf.input;
+read_input :: (count: int) -> (int, bool) {
+  return conf.input, true;
 }
 
 main :: () {
